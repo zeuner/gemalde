@@ -1,17 +1,49 @@
--- Count the number of pictures.
-local function get_picture(number)
-	local filename	= minetest.get_modpath("gemalde").."/textures/gemalde_"..number..".png"
-	local file		= io.open(filename, "r")
-	if file ~= nil then io.close(file) return true else return false end
+local storage = minetest.get_mod_storage()
+
+local still_pictures = {}
+
+local still_pictures_stored = storage:get(
+	"still_pictures"
+)
+
+if still_pictures_stored then
+	still_pictures = minetest.deserialize(still_pictures_stored)
 end
 
-local N = 1
+local still_pictures_reverse = {}
 
-while get_picture(N) == true do
-	N = N + 1
+local still_pictures_reverse_stored = storage:get(
+	"still_pictures_reverse"
+)
+
+if still_pictures_reverse_stored then
+	still_pictures_reverse = minetest.deserialize(
+		still_pictures_reverse_stored
+	)
 end
 
-N = N - 1
+local still_path = minetest.get_modpath(
+	minetest.get_current_modname()
+) .. "/textures/still"
+
+local found = minetest.get_dir_list(still_path)
+
+for i = 1, #found do
+	if not still_pictures_reverse[found[i]] then
+		local new_index = #still_pictures + 1
+		still_pictures[new_index] = found[i]
+		still_pictures_reverse[found[i]] = new_index
+	end
+end
+
+storage:set_string("still_pictures", minetest.serialize(still_pictures))
+
+storage:set_string(
+	"still_pictures_reverse",
+	minetest.serialize(still_pictures_reverse)
+)
+
+N = #still_pictures
 
 -- register for each picture
 for n=1, N do
@@ -22,10 +54,16 @@ if n == 1 then
 end
 
 -- node
+basename = string.sub(
+	still_pictures[n],
+	1,
+	string.find(still_pictures[n], "%.") - 1
+)
+
 minetest.register_node("gemalde:node_"..n.."", {
-	description = "Picture #"..n.."",
+	description = "Picture " .. basename,
 	drawtype = "signlike",
-	tiles = {"gemalde_"..n..".png"},
+	tiles = {still_pictures[n]},
 	visual_scale = 3.0,
 	inventory_image = "gemalde_node.png",
 	wield_image = "gemalde_node.png",
