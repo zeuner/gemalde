@@ -26,6 +26,23 @@ local still_path = minetest.get_modpath(
 	minetest.get_current_modname()
 ) .. "/textures/still"
 
+local i = 1
+
+while true do
+	local filename = still_path .. "/gealde_" .. i .. ".png"
+	local file = io.open(filename, "r")
+	if file then
+		io.close(file)
+		if not still_pictures_reverse[filename] then
+			local new_index = #still_pictures + 1
+			still_pictures[new_index] = filename
+			still_pictures_reverse[filename] = new_index
+		end
+	else
+		break
+	end
+end
+
 local found = minetest.get_dir_list(still_path)
 
 for i = 1, #found do
