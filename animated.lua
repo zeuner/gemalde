@@ -8,20 +8,70 @@ local frames = {
 --	{2, 1.0}, -- Example. Speed of 1.0 for the second animated painting.
 }
 
--- Count the number of pictures.
-local function get_picture(number)
-	local filename	= minetest.get_modpath("gemalde").."/textures/gemalde_animated_"..number..".png"
-	local file		= io.open(filename, "r")
-	if file ~= nil then io.close(file) return true else return false end
+local storage = minetest.get_mod_storage()
+
+local animated_pictures = {}
+
+local animated_pictures_stored = storage:get(
+	"animated_pictures"
+)
+
+if animated_pictures_stored then
+	animated_pictures = minetest.deserialize(animated_pictures_stored)
 end
 
-local N = 1
+local animated_pictures_reverse = {}
 
-while get_picture(N) == true do
-	N = N + 1
+local animated_pictures_reverse_stored = storage:get(
+	"animated_pictures_reverse"
+)
+
+if animated_pictures_reverse_stored then
+	animated_pictures_reverse = minetest.deserialize(
+		animated_pictures_reverse_stored
+	)
 end
 
-N = N - 1
+local animated_path = minetest.get_modpath(
+	minetest.get_current_modname()
+) .. "/textures/animated"
+
+local i = 1
+
+while true do
+	local filename = animated_path .. "/gemalde_animated_" .. i .. ".png"
+	local file = io.open(filename, "r")
+	if file then
+		io.close(file)
+		if not animated_pictures_reverse[filename] then
+			local new_index = #animated_pictures + 1
+			animated_pictures[new_index] = filename
+			animated_pictures_reverse[filename] = new_index
+		end
+	else
+		break
+	end
+	i = i + 1
+end
+
+local found = minetest.get_dir_list(animated_path)
+
+for i = 1, #found do
+	if not animated_pictures_reverse[found[i]] then
+		local new_index = #animated_pictures + 1
+		animated_pictures[new_index] = found[i]
+		animated_pictures_reverse[found[i]] = new_index
+	end
+end
+
+storage:set_string("animated_pictures", minetest.serialize(animated_pictures))
+
+storage:set_string(
+	"animated_pictures_reverse",
+	minetest.serialize(animated_pictures_reverse)
+)
+
+N = #animated_pictures
 
 -- register for each picture
 for n=1, N do
@@ -40,13 +90,22 @@ for _,frames in ipairs(frames) do
 end
 
 -- node
+basename = string.sub(
+	animated_pictures[n],
+	1,
+	string.find(animated_pictures[n], "%.") - 1
+)
+
 minetest.register_node("gemalde:node_animated_"..n.."", {
-	description = "Animation #"..n.."",
+	description = "Animation " .. basename,
 	drawtype = "signlike",
 	tiles = {
 		{
-			image="gemalde_animated_"..n..".png",
-			animation={type="vertical_frames", length=frames_speed}
+			image = animated_pictures[n],
+			animation ={
+				type="vertical_frames",
+				length=frames_speed
+			}
 		},
 	},
 	visual_scale = 3.0,

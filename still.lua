@@ -41,6 +41,7 @@ while true do
 	else
 		break
 	end
+	i = i + 1
 end
 
 local found = minetest.get_dir_list(still_path)
