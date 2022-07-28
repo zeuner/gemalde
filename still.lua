@@ -29,7 +29,7 @@ local still_path = minetest.get_modpath(
 local i = 1
 
 while true do
-	local filename = still_path .. "/gealde_" .. i .. ".png"
+	local filename = still_path .. "/gemalde_" .. i .. ".png"
 	local file = io.open(filename, "r")
 	if file then
 		io.close(file)
