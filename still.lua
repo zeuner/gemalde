@@ -26,6 +26,12 @@ local still_path = minetest.get_modpath(
 	minetest.get_current_modname()
 ) .. "/textures/still"
 
+local gemalde_privilege = "teacher"
+
+if not minetest.registered_privileges[gemalde_privilege] then
+	gemalde_privilege = "server"
+end
+
 local i = 1
 
 while true do
@@ -95,6 +101,18 @@ minetest.register_node("gemalde:node_"..n.."", {
 	groups = groups,
 
 	on_rightclick = function(pos, node, clicker)
+		local name = clicker:get_player_name()
+		local privileges = minetest.get_player_privs(name)
+		if not privileges[gemalde_privilege] then
+			minetest.chat_send_player(
+				name,
+				string.format(
+					"missing privilege %s",
+					gemalde_privilege
+				)
+			)
+			return false
+		end
 	
 		local length = string.len (node.name)
 		local number = string.sub (node.name, 14, length)
