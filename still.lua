@@ -1,4 +1,12 @@
-local storage = minetest.get_mod_storage()
+local storage = gemalde.storage
+
+local S = gemalde.S
+
+local supported_scales = {
+	1.0,
+	2.0,
+	3.0,
+}
 
 local still_pictures = {}
 
@@ -22,6 +30,46 @@ if still_pictures_reverse_stored then
 	)
 end
 
+local known_scales = {}
+
+known_scales[#known_scales + 1] = 3.0
+
+local known_scales_stored = storage:get(
+	"still_known_scales"
+)
+
+if known_scales_stored then
+	known_scales = minetest.deserialize(
+		known_scales_stored
+	)
+end
+
+local scale_suffix = {}
+
+scale_suffix[3.0] = ""
+
+local scale_suffix_stored = storage:get(
+	"still_scale_suffix"
+)
+
+if scale_suffix_stored then
+	scale_suffix = minetest.deserialize(
+		scale_suffix_stored
+	)
+end
+
+for _, scale in pairs(supported_scales) do
+	if not scale_suffix[scale] then
+		local new_index = #known_scales + 1
+		scale_suffix[scale] = "_" .. new_index
+		known_scales[new_index] = scale
+	end
+end
+
+storage:set_string("still_known_scales", minetest.serialize(known_scales))
+
+storage:set_string("still_scale_suffix", minetest.serialize(scale_suffix))
+
 local still_path = minetest.get_modpath(
 	minetest.get_current_modname()
 ) .. "/textures/still"
@@ -35,8 +83,9 @@ end
 local i = 1
 
 while true do
-	local filename = still_path .. "/gemalde_" .. i .. ".png"
-	local file = io.open(filename, "r")
+	local filename = "gemalde_" .. i .. ".png"
+	local filepath = still_path .. "/" .. filename
+	local file = io.open(filepath, "r")
 	if file then
 		io.close(file)
 		if not still_pictures_reverse[filename] then
@@ -69,11 +118,19 @@ storage:set_string(
 
 N = #still_pictures
 
+local node_config = {}
+
+local configured_node
+
+local configured_pos
+
 -- register for each picture
 for n=1, N do
 
+for o=1, #supported_scales do
+
 local groups = {choppy=2, dig_immediate=3, picture=1, not_in_creative_inventory=1}
-if n == 1 then
+if n == 1 and o == 1 then
 	groups = {choppy=2, dig_immediate=3, picture=1}
 end
 
@@ -84,11 +141,16 @@ basename = string.sub(
 	string.find(still_pictures[n], "%.") - 1
 )
 
-minetest.register_node("gemalde:node_"..n.."", {
-	description = "Picture " .. basename,
+node_config["gemalde:node_"..n..scale_suffix[supported_scales[o]]] = {
+	face = n,
+	scale = o,
+}
+
+minetest.register_node("gemalde:node_"..n..scale_suffix[supported_scales[o]], {
+	description = S("Picture @1", basename),
 	drawtype = "signlike",
 	tiles = {still_pictures[n]},
-	visual_scale = 3.0,
+	visual_scale = supported_scales[o],
 	inventory_image = "gemalde_node.png",
 	wield_image = "gemalde_node.png",
 	paramtype = "light",
@@ -106,36 +168,65 @@ minetest.register_node("gemalde:node_"..n.."", {
 		if not privileges[gemalde_privilege] then
 			minetest.chat_send_player(
 				name,
-				string.format(
-					"missing privilege %s",
-					gemalde_privilege
-				)
+				S("missing privilege @1", gemalde_privilege)
 			)
 			return false
 		end
-	
-		local length = string.len (node.name)
-		local number = string.sub (node.name, 14, length)
-		
-		-- TODO. Reducing currently not working, because sneaking prevents right click.
-		local keys=clicker:get_player_control()
-		if keys["sneak"]==false then
-			if number == tostring(N) then
-				number = 1
-			else
-				number = number + 1
-			end
-		else
-			if number == 1 then
-				number = N - 1
-			else
-				number = number - 1
-			end
-		end
 
-		print("[gemalde] number is "..number.."")
-		node.name = "gemalde:node_"..number..""
-		minetest.env:set_node(pos, node)
+		local formspec = "size[9.0,9.0;]"
+		local label = minetest.formspec_escape(S("Picture"))
+		formspec = formspec .. "label[1.0,1.0;" .. label .. "]"
+		formspec = formspec .. "dropdown[1.0,2.0;7.0;new_face;"
+		local delimiter = ""
+		for m = 1, #still_pictures do
+			local escaped = minetest.formspec_escape(
+				still_pictures[m]
+			)
+			formspec = formspec .. delimiter .. escaped
+			delimiter = ","
+		end
+		formspec = formspec .. ";" .. node_config[node.name].face .. ";]"
+		label = minetest.formspec_escape(S("Scale"))
+		formspec = formspec .. "label[1.0,3.0;" .. label .. "]"
+		formspec = formspec .. "dropdown[1.0,4.0;7.0;new_scale;"
+		local delimiter = ""
+		for m = 1, #supported_scales do
+			local escaped = minetest.formspec_escape(
+				supported_scales[m]
+			)
+			formspec = formspec .. delimiter .. escaped
+			delimiter = ","
+		end
+		formspec = formspec .. ";" .. node_config[node.name].scale .. ";]"
+		formspec = formspec .. "button_exit[1.0,5.0;7.0,1.0;close;"
+		label = minetest.formspec_escape(S("Close"))
+		formspec = formspec .. label .. "]"
+		configured_node = node
+		configured_pos = pos
+		minetest.show_formspec(name, "gemalde:choose", formspec)
+	
+		--local length = string.len (node.name)
+		--local number = string.sub (node.name, 14, length)
+		
+		---- TODO. Reducing currently not working, because sneaking prevents right click.
+		--local keys=clicker:get_player_control()
+		--if keys["sneak"]==false then
+			--if number == tostring(N) then
+				--number = 1
+			--else
+				--number = number + 1
+			--end
+		--else
+			--if number == 1 then
+				--number = N - 1
+			--else
+				--number = number - 1
+			--end
+		--end
+
+		--print("[gemalde] number is "..number.."")
+		--node.name = "gemalde:node_"..number..""
+		--minetest.env:set_node(pos, node)
 	end,
 
 --	TODO.
@@ -143,7 +234,7 @@ minetest.register_node("gemalde:node_"..n.."", {
 })
 
 -- crafts
-if n < N then
+if n < N and o == 1 then
 minetest.register_craft({
 	output = 'gemalde:node_'..n..'',
 	recipe = {
@@ -151,10 +242,46 @@ minetest.register_craft({
 	}
 })
 end
+end
 
 n = n + 1
 
 end
+
+local on_player_receive_fields = function(player, formname, fields)
+	if "gemalde:choose" ~= formname then
+		return false
+	end
+	local name = player:get_player_name()
+	local privileges = minetest.get_player_privs(name)
+	local current_node = minetest.env:get_node(configured_pos)
+	local config = node_config[current_node.name]
+	configured_face = config.face
+	configured_scale = config.scale
+	if not privileges[gemalde_privilege] then
+		minetest.chat_send_player(
+			name,
+			S("missing privilege @1", gemalde_privilege)
+		)
+		return false
+	end
+	local number = still_pictures_reverse[fields.new_face]
+	if not number then
+		number = configured_face
+	end
+	print("[gemalde] " .. S("number is @1", number))
+	local scale = fields.new_scale
+	if scale then
+		scale = tonumber(scale)
+	else
+		scale = supported_scales[configured_scale]
+	end
+	print("[gemalde] " .. S("scale is @1", scale))
+	configured_node.name = "gemalde:node_"..number..scale_suffix[scale]
+	minetest.env:set_node(configured_pos, configured_node)
+end
+
+minetest.register_on_player_receive_fields(on_player_receive_fields)
 
 -- close the craft loop
 minetest.register_craft({

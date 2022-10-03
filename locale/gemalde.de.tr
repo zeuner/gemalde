@@ -1,0 +1,21 @@
+# textdomain: gemalde
+
+### still.lua ###
+
+missing privilege @1=Privileg @1 fehlt
+number is @1=Nummer ist @1
+scale is @1=Skalierung ist @1
+Picture @1=Bild @1
+Picture=Bild
+Scale=Skalierung
+Close=Schließen
+
+### animated.lua ###
+
+missing privilege @1=Privileg @1 fehlt
+number is @1=Nummer ist @1
+scale is @1=Skalierung ist @1
+Picture @1=Bild @1
+Picture=Bild
+Scale=Skalierung
+Close=Schließen
