@@ -301,14 +301,14 @@ local on_player_receive_fields = function(player, formname, fields)
 	if not number then
 		number = configured_face
 	end
-	print("[gemalde] " .. S("number is @1", number))
+	print("[gemalde] number is " .. number)
 	local scale = fields.new_scale
 	if scale then
 		scale = tonumber(scale)
 	else
 		scale = supported_scales[configured_scale]
 	end
-	print("[gemalde] " .. S("scale is @1", scale))
+	print("[gemalde] scale is " .. scale)
 	local suffix = scale_suffix[scale]
 	configured_node.name = "gemalde:node_animated_"..number..suffix
 	minetest.env:set_node(configured_pos, configured_node)
