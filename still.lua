@@ -8,6 +8,10 @@ local supported_scales = {
 	3.0,
 }
 
+local supported_still_pictures = {}
+
+local supported_still_pictures_reverse = {}
+
 local still_pictures = {}
 
 local still_pictures_stored = storage:get(
@@ -93,6 +97,11 @@ while true do
 			still_pictures[new_index] = filename
 			still_pictures_reverse[filename] = new_index
 		end
+		if not supported_still_pictures_reverse[filename] then
+			local supported_index = #supported_still_pictures + 1
+			supported_still_pictures[supported_index] = filename
+			supported_still_pictures_reverse[filename] = supported_index
+		end
 	else
 		break
 	end
@@ -107,6 +116,11 @@ for i = 1, #found do
 		still_pictures[new_index] = found[i]
 		still_pictures_reverse[found[i]] = new_index
 	end
+	if not supported_still_pictures_reverse[found[i]] then
+		local supported_index = #supported_still_pictures + 1
+		supported_still_pictures[supported_index] = found[i]
+		supported_still_pictures_reverse[found[i]] = supported_index
+	end
 end
 
 storage:set_string("still_pictures", minetest.serialize(still_pictures))
@@ -116,7 +130,7 @@ storage:set_string(
 	minetest.serialize(still_pictures_reverse)
 )
 
-N = #still_pictures
+N = #supported_still_pictures
 
 local node_config = {}
 
@@ -136,20 +150,20 @@ end
 
 -- node
 basename = string.sub(
-	still_pictures[n],
+	supported_still_pictures[n],
 	1,
-	string.find(still_pictures[n], "%.") - 1
+	string.find(supported_still_pictures[n], "%.") - 1
 )
 
-node_config["gemalde:node_"..n..scale_suffix[supported_scales[o]]] = {
+node_config["gemalde:node_"..still_pictures_reverse[supported_still_pictures[n]]..scale_suffix[supported_scales[o]]] = {
 	face = n,
 	scale = o,
 }
 
-minetest.register_node("gemalde:node_"..n..scale_suffix[supported_scales[o]], {
+minetest.register_node("gemalde:node_"..still_pictures_reverse[supported_still_pictures[n]]..scale_suffix[supported_scales[o]], {
 	description = S("Picture @1", basename),
 	drawtype = "signlike",
-	tiles = {still_pictures[n]},
+	tiles = {supported_still_pictures[n]},
 	visual_scale = supported_scales[o],
 	inventory_image = "gemalde_node.png",
 	wield_image = "gemalde_node.png",
@@ -178,9 +192,9 @@ minetest.register_node("gemalde:node_"..n..scale_suffix[supported_scales[o]], {
 		formspec = formspec .. "label[1.0,1.0;" .. label .. "]"
 		formspec = formspec .. "dropdown[1.0,2.0;7.0;new_face;"
 		local delimiter = ""
-		for m = 1, #still_pictures do
+		for m = 1, #supported_still_pictures do
 			local escaped = minetest.formspec_escape(
-				still_pictures[m]
+				supported_still_pictures[m]
 			)
 			formspec = formspec .. delimiter .. escaped
 			delimiter = ","
@@ -236,9 +250,9 @@ minetest.register_node("gemalde:node_"..n..scale_suffix[supported_scales[o]], {
 -- crafts
 if n < N and o == 1 then
 minetest.register_craft({
-	output = 'gemalde:node_'..n..'',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[n]]..'',
 	recipe = {
-		{'gemalde:node_'..(n+1)..''},
+		{'gemalde:node_'..still_pictures_reverse[supported_still_pictures[n+1]]..''},
 	}
 })
 end
@@ -265,7 +279,7 @@ local on_player_receive_fields = function(player, formname, fields)
 		)
 		return false
 	end
-	local number = still_pictures_reverse[fields.new_face]
+	local number = supported_still_pictures_reverse[fields.new_face]
 	if not number then
 		number = configured_face
 	end
@@ -285,15 +299,15 @@ minetest.register_on_player_receive_fields(on_player_receive_fields)
 
 -- close the craft loop
 minetest.register_craft({
-	output = 'gemalde:node_'..N..'',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[N]]..'',
 	recipe = {
-		{'gemalde:node_1'},
+		{'gemalde:node_'..still_pictures_reverse[supported_still_pictures[1]]},
 	}
 })
 
 -- initial craft
 minetest.register_craft({
-	output = 'gemalde:node_1',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[1]],
 	recipe = {
 		{'default:paper', 'default:paper'},
 		{'default:paper', 'default:paper'},
@@ -304,19 +318,19 @@ minetest.register_craft({
 -- reset several pictures to #1
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_1 2',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[1]]..' 2',
 	recipe = {'group:picture', 'group:picture'},
 })
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_1 3',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[1]]..' 3',
 	recipe = {'group:picture', 'group:picture', 'group:picture'},
 })
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_1 4',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[1]]..' 4',
 	recipe = {
 		'group:picture', 'group:picture', 'group:picture', 
 		'group:picture'
@@ -325,7 +339,7 @@ minetest.register_craft({
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_1 5',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[1]]..' 5',
 	recipe = {
 		'group:picture', 'group:picture', 'group:picture', 
 		'group:picture', 'group:picture'
@@ -334,7 +348,7 @@ minetest.register_craft({
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_1 6',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[1]]..' 6',
 	recipe = {
 		'group:picture', 'group:picture', 'group:picture', 
 		'group:picture', 'group:picture', 'group:picture'
@@ -343,7 +357,7 @@ minetest.register_craft({
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_1 7',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[1]]..' 7',
 	recipe = {
 		'group:picture', 'group:picture', 'group:picture', 
 		'group:picture', 'group:picture', 'group:picture', 
@@ -353,7 +367,7 @@ minetest.register_craft({
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_1 8',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[1]]..' 8',
 	recipe = {
 		'group:picture', 'group:picture', 'group:picture', 
 		'group:picture', 'group:picture', 'group:picture', 
@@ -363,7 +377,7 @@ minetest.register_craft({
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_1 9',
+	output = 'gemalde:node_'..still_pictures_reverse[supported_still_pictures[1]]..' 9',
 	recipe = {
 			'group:picture', 'group:picture', 'group:picture', 
 			'group:picture', 'group:picture', 'group:picture', 

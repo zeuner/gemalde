@@ -18,6 +18,10 @@ local supported_scales = {
 	3.0,
 }
 
+local supported_animated_pictures = {}
+
+local supported_animated_pictures_reverse = {}
+
 local animated_pictures = {}
 
 local animated_pictures_stored = storage:get(
@@ -103,6 +107,11 @@ while true do
 			animated_pictures[new_index] = filename
 			animated_pictures_reverse[filename] = new_index
 		end
+		if not supported_animated_pictures_reverse[filename] then
+			local supported_index = #supported_animated_pictures + 1
+			supported_animated_pictures[supported_index] = filename
+			supported_animated_pictures_reverse[filename] = supported_index
+		end
 	else
 		break
 	end
@@ -117,6 +126,11 @@ for i = 1, #found do
 		animated_pictures[new_index] = found[i]
 		animated_pictures_reverse[found[i]] = new_index
 	end
+	if not supported_animated_pictures_reverse[found[i]] then
+		local supported_index = #supported_animated_pictures + 1
+		supported_animated_pictures[supported_index] = found[i]
+		supported_animated_pictures_reverse[found[i]] = supported_index
+	end
 end
 
 storage:set_string("animated_pictures", minetest.serialize(animated_pictures))
@@ -126,7 +140,7 @@ storage:set_string(
 	minetest.serialize(animated_pictures_reverse)
 )
 
-N = #animated_pictures
+N = #supported_animated_pictures
 
 local node_config = {}
 
@@ -154,23 +168,23 @@ end
 
 -- node
 basename = string.sub(
-	animated_pictures[n],
+	supported_animated_pictures[n],
 	1,
-	string.find(animated_pictures[n], "%.") - 1
+	string.find(supported_animated_pictures[n], "%.") - 1
 )
 
-node_config["gemalde:node_animated_"..n..scale_suffix[supported_scales[o]]] = {
+node_config["gemalde:node_animated_"..animated_pictures_reverse[supported_animated_pictures[n]]..scale_suffix[supported_scales[o]]] = {
 	face = n,
 	scale = o,
 }
 
 minetest.register_node(
-	"gemalde:node_animated_"..n..scale_suffix[supported_scales[o]], {
+	"gemalde:node_animated_"..animated_pictures_reverse[supported_animated_pictures[n]]..scale_suffix[supported_scales[o]], {
 	description = "Animation " .. basename,
 	drawtype = "signlike",
 	tiles = {
 		{
-			image = animated_pictures[n],
+			image = supported_animated_pictures[n],
 			animation ={
 				type="vertical_frames",
 				length=frames_speed
@@ -206,9 +220,9 @@ minetest.register_node(
 		formspec = formspec .. "label[1.0,1.0;" .. label .. "]"
 		formspec = formspec .. "dropdown[1.0,2.0;7.0;new_face;"
 		local delimiter = ""
-		for m = 1, #animated_pictures do
+		for m = 1, #supported_animated_pictures do
 			local escaped = minetest.formspec_escape(
-				animated_pictures[m]
+				supported_animated_pictures[m]
 			)
 			formspec = formspec .. delimiter .. escaped
 			delimiter = ","
@@ -268,9 +282,9 @@ minetest.register_node(
 -- crafts
 if n < N and o == 1 then
 minetest.register_craft({
-	output = 'gemalde:node_animated_'..n..'',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[n]]..'',
 	recipe = {
-		{'gemalde:node_animated_'..(n+1)..''},
+		{'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[n+1]]..''},
 	}
 })
 end
@@ -297,7 +311,7 @@ local on_player_receive_fields = function(player, formname, fields)
 		)
 		return false
 	end
-	local number = animated_pictures_reverse[fields.new_face]
+	local number = supported_animated_pictures_reverse[fields.new_face]
 	if not number then
 		number = configured_face
 	end
@@ -319,15 +333,15 @@ minetest.register_on_player_receive_fields(on_player_receive_fields)
 
 -- close the craft loop
 minetest.register_craft({
-	output = 'gemalde:node_animated_'..N..'',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[N]]..'',
 	recipe = {
-		{'gemalde:node_animated_1'},
+		{'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[1]]},
 	}
 })
 
 -- initial craft
 minetest.register_craft({
-	output = 'gemalde:node_animated_1',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[1]],
 	recipe = {
 		{'default:book', 'default:book'},
 		{'default:book', 'default:book'},
@@ -338,19 +352,19 @@ minetest.register_craft({
 -- reset several pictures to #1
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_animated_1 2',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[1]]..' 2',
 	recipe = {'group:animated_picture', 'group:animated_picture'},
 })
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_animated_1 3',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[1]]..' 3',
 	recipe = {'group:animated_picture', 'group:animated_picture', 'group:animated_picture'},
 })
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_animated_1 4',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[2]]..' 4',
 	recipe = {
 		'group:animated_picture', 'group:animated_picture', 'group:animated_picture', 
 		'group:animated_picture'
@@ -359,7 +373,7 @@ minetest.register_craft({
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_animated_1 5',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[1]]..' 5',
 	recipe = {
 		'group:animated_picture', 'group:animated_picture', 'group:animated_picture', 
 		'group:animated_picture', 'group:animated_picture'
@@ -368,7 +382,7 @@ minetest.register_craft({
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_animated_1 6',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[1]]..' 6',
 	recipe = {
 		'group:animated_picture', 'group:animated_picture', 'group:animated_picture', 
 		'group:animated_picture', 'group:animated_picture', 'group:animated_picture'
@@ -377,7 +391,7 @@ minetest.register_craft({
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_animated_1 7',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[1]]..' 7',
 	recipe = {
 		'group:animated_picture', 'group:animated_picture', 'group:animated_picture', 
 		'group:animated_picture', 'group:animated_picture', 'group:animated_picture', 
@@ -387,7 +401,7 @@ minetest.register_craft({
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_animated_1 8',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[1]]..' 8',
 	recipe = {
 		'group:animated_picture', 'group:animated_picture', 'group:animated_picture', 
 		'group:animated_picture', 'group:animated_picture', 'group:animated_picture', 
@@ -397,7 +411,7 @@ minetest.register_craft({
 
 minetest.register_craft({
 	type = 'shapeless',
-	output = 'gemalde:node_animated_1 9',
+	output = 'gemalde:node_animated_'..animated_pictures_reverse[supported_animated_pictures[1]]..' 9',
 	recipe = {
 			'group:animated_picture', 'group:animated_picture', 'group:animated_picture', 
 			'group:animated_picture', 'group:animated_picture', 'group:animated_picture', 
