@@ -262,6 +262,13 @@ n = n + 1
 
 end
 
+local fallback_node
+
+for node, _ in pairs(node_config) do
+	fallback_node = node
+	break
+end
+
 local on_player_receive_fields = function(player, formname, fields)
 	if "gemalde:choose" ~= formname then
 		return false
@@ -270,6 +277,9 @@ local on_player_receive_fields = function(player, formname, fields)
 	local privileges = minetest.get_player_privs(name)
 	local current_node = minetest.env:get_node(configured_pos)
 	local config = node_config[current_node.name]
+	if not config then
+		config = node_config[fallback_node]
+	end
 	configured_face = config.face
 	configured_scale = config.scale
 	if not privileges[gemalde_privilege] then
@@ -279,7 +289,7 @@ local on_player_receive_fields = function(player, formname, fields)
 		)
 		return false
 	end
-	local number = supported_still_pictures_reverse[fields.new_face]
+	local number = still_pictures_reverse[fields.new_face]
 	if not number then
 		number = configured_face
 	end
